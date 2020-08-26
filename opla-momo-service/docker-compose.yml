@@ -1,0 +1,36 @@
+version: '3'
+
+services:
+  opla_friend_database:
+    container_name: opla_friend_database
+    image: neo4j:3.5.17
+    restart: always
+    environment:
+      NEO4J_AUTH: none
+    volumes:
+      - ./var/database:/data
+    ports:
+      - 7473:7473
+      - 7474:7474
+      - 7687:7687
+
+  opla_friend_service:
+    container_name: opla_friend_service
+    build: .
+    ports:
+      - 9003:3000
+    environment:
+      # NODE_ENV: production
+      # DEBUG: express:*
+      NEO4J_URL: bolt://opla_friend_database:7687
+      RABBITMQ_URL: amqp://opla:kr2h4YzRH5LakSad@172.16.0.122:9013
+    volumes:
+      - ./src:/usr/src/app/src
+      - ./locales:/usr/src/app/locales
+      - ./public.pem:/usr/src/app/public.pem
+    command: npm run dev
+
+networks:
+  default:
+    external:
+      name: opla

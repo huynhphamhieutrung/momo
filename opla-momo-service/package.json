@@ -1,0 +1,29 @@
+{
+    "name": "opla-momo-service",
+    "version": "1.0.0",
+    "main": "index.js",
+    "repository": "https://gitlab.officience.com/opla/opla-user-service.git",
+    "author": "Magical~ <magical9k@gmail.com>",
+    "license": "MIT",
+    "scripts": {
+        "dev": "nodemon -L src/server.js",
+        "start": "node src/server.js"
+    },
+    "dependencies": {
+        "amqplib": "^0.6.0",
+        "axios": "^0.19.2",
+        "body-parser": "^1.19.0",
+        "cors": "^2.8.5",
+        "express": "^4.17.1",
+        "express-validator": "^6.6.0",
+        "i18n": "^0.10.0",
+        "jsonwebtoken": "^8.5.1",
+        "moment": "^2.27.0",
+        "mongodb": "^3.5.9",
+        "rand-token": "^1.0.1",
+        "swagger-ui-express": "^4.1.4"
+    },
+    "devDependencies": {
+        "nodemon": "^2.0.4"
+    }
+}

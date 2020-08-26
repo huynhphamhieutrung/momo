@@ -1,0 +1,59 @@
+image: docker:stable
+
+services:
+  - docker:stable-dind
+
+stages:
+  - build
+  - test
+  - release
+  - deploy
+
+variables:
+  DOCKER_HOST: tcp://docker:2376
+  DOCKER_TLS_CERTDIR: "/certs"
+  CONTAINER_BRANCH_IMAGE: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG
+  CONTAINER_MASTER_RELEASE_IMAGE: $CI_REGISTRY_IMAGE:latest
+
+.base_docker:
+  before_script:
+    - echo $CI_REGISTRY_USER
+    - echo $CI_REGISTRY_PASSWORD
+    - echo $CI_REGISTRY
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+
+branch_build:
+  stage: build
+  extends: .base_docker
+  script:
+    - docker build -t $CONTAINER_BRANCH_IMAGE .
+    - docker push $CONTAINER_BRANCH_IMAGE
+  only:
+    - testing
+    - master
+
+master_release:
+  stage: release
+  extends: .base_docker
+  script:
+    - docker pull $CONTAINER_BRANCH_IMAGE
+    - docker tag $CONTAINER_BRANCH_IMAGE $CONTAINER_MASTER_RELEASE_IMAGE
+    - docker push $CONTAINER_MASTER_RELEASE_IMAGE
+  only:
+    - master
+
+testing_deploy:
+  stage: deploy
+  image: debian:buster-slim
+  before_script:
+    - 'which ssh-agent || ( apt-get update -y && apt-get install openssh-client -y )'
+    - mkdir -p ~/.ssh
+    - eval $(ssh-agent -s)
+    - '[[ -f /.dockerenv ]] && echo -e "Host *\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config'
+  script:
+    - ssh-add <(echo "$OPLA_TESTING_SSH_PRIVATE_KEY")
+    - ssh -t -p$OPLA_TESTING_SSH_PORT $OPLA_TESTING_SSH_USERNAME@$OPLA_TESTING_IP "docker rm -f opla_test_friend_service || true"
+    - ssh -t -p$OPLA_TESTING_SSH_PORT $OPLA_TESTING_SSH_USERNAME@$OPLA_TESTING_IP "docker rmi -f $CONTAINER_BRANCH_IMAGE || true"
+    - ssh -t -p$OPLA_TESTING_SSH_PORT $OPLA_TESTING_SSH_USERNAME@$OPLA_TESTING_IP "docker-compose -f /home/www/opla/test/docker-compose.yml up -d"
+  only:
+    - testing
